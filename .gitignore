@@ -1,4 +1,5 @@
 out/**
 **/.DS_Store
 data/models/**
+data/wikiart/**
 **/__pycache__/**
