@@ -44,7 +44,6 @@ decoders = [model.decoder1, model.decoder2, model.decoder3, model.decoder4, mode
 print("Model loaded")
 
 batch_size = 8
-max_samples = 10000
 
 transform = transforms.Compose([])
 dataset_wikiart = ImageDataset('../data/wikiart/image_face/', style='wikiart', transform=transform)
@@ -112,9 +111,7 @@ with torch.no_grad():
         else:
             f5 = torch.cat((f5, features5), dim=0)
 
-        print("{}/{}".format((i+1)*batch_size, int(max_samples/batch_size)))
-        if f1.shape[0] > max_samples:
-            break
+        print("{}/{}".format((i+1), len(celeba_loader))
 torch.save(xs, '../data/wikiart/wikiart_input.pt')
 torch.save(f1, '../data/wikiart/wikiart_embeddings_1.pt')
 torch.save(f2, '../data/wikiart/wikiart_embeddings_2.pt')
