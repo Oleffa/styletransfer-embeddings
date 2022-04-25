@@ -43,12 +43,14 @@ encoder = model.encoder
 decoders = [model.decoder1, model.decoder2, model.decoder3, model.decoder4, model.decoder5]
 print("Model loaded")
 
-#transform = transforms.Compose([transforms.Resize((320, 192))])
+batch_size = 8
+max_samples = 10000
+
 transform = transforms.Compose([])
-dataset_realism = ImageDataset('../data/wikiart/realism/', style='realism', transform=transform)
-realism_loader = DataLoader(dataset_realism, batch_size=1, shuffle=False)
-dataset_impressionism = ImageDataset('../data/wikiart/impressionism/', style='impressionism', transform=transform)
-impressionism_loader = DataLoader(dataset_impressionism, batch_size=1, shuffle=False)
+dataset_wikiart = ImageDataset('../data/wikiart/image_face/', style='wikiart', transform=transform)
+wikiart_loader = DataLoader(dataset_wikiart, batch_size=batch_size, shuffle=False)
+dataset_celeba = ImageDataset('../data/wikiart/img_align_celeba/', style='celeba', transform=transform)
+celeba_loader = DataLoader(dataset_celeba, batch_size=batch_size, shuffle=False)
 print("Datasets loaded")
 
 class Datapoint():
@@ -64,10 +66,11 @@ def show(embedding, dec):
         plt.show()
     return dec[0]
 
-datapoints = []
+
 with torch.no_grad():
-    for i, d in enumerate(realism_loader):
+    for i, d in enumerate(celeba_loader):
         x = d[0].float() / 255.0
+
         features5 = encoder(x, f'relu5_1')
         rec5 = show(features5, 4)
         features4 = encoder(x, f'relu4_1')
@@ -78,14 +81,48 @@ with torch.no_grad():
         rec2 = show(features2, 1)
         features1 = encoder(x, f'relu1_1')
         rec1 = show(features1, 0)
-        print(features5.numpy().nbytes / 1000000.0)
-        print(features4.numpy().nbytes / 1000000.0)
-        print(features3.numpy().nbytes / 1000000.0)
-        print(features2.numpy().nbytes / 1000000.0)
-        print(features1.numpy().nbytes / 1000000.0)
-        d = Datapoint(d[0][0], [features1, features2, features3, features4, features5], \
-                [rec1, rec2, rec3, rec4, rec5])
-        datapoints.append(d)
-        print("{}/{}".format(i+1, len(realism_loader)))
-        with open('../data/wikiart/realism.pkl', 'wb') as f:
-            pickle.dump(datapoints, f)
+
+        if not 'xs' in locals():
+            xs = x
+        else:
+            xs = torch.cat((xs, x), dim=0)
+
+        if not 'f1' in locals():
+            f1 = features1
+        else:
+            f1 = torch.cat((f1, features1), dim=0)
+            
+        if not 'f2' in locals():
+            f2 = features2
+        else:
+            f2 = torch.cat((f2, features2), dim=0)
+
+        if not 'f3' in locals():
+            f3 = features3
+        else:
+            f3 = torch.cat((f3, features3), dim=0)
+
+        if not 'f4' in locals():
+            f4 = features4
+        else:
+            f4 = torch.cat((f4, features4), dim=0)
+
+        if not 'f5' in locals():
+            f5 = features5
+        else:
+            f5 = torch.cat((f5, features5), dim=0)
+
+        print("{}/{}".format((i+1)*batch_size, int(max_samples/batch_size)))
+        if f1.shape[0] > max_samples:
+            break
+torch.save(xs, '../data/wikiart/wikiart_input.pt')
+torch.save(f1, '../data/wikiart/wikiart_embeddings_1.pt')
+torch.save(f2, '../data/wikiart/wikiart_embeddings_2.pt')
+torch.save(f3, '../data/wikiart/wikiart_embeddings_3.pt')
+torch.save(f4, '../data/wikiart/wikiart_embeddings_4.pt')
+torch.save(f5, '../data/wikiart/wikiart_embeddings_5.pt')
+
+# TODO test load the embeddings and decode them to see if it worked
+
+# Downstream experiment, train 5 VAES on the 5 sets of features (test individually and total comparison with
+# all 5 vae networks in demo case)
