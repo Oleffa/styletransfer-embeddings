@@ -1,4 +1,5 @@
 import torch
+import urllib
 import pickle
 from model_style_transfer import MultiLevelAE
 import matplotlib.pyplot as plt
@@ -43,12 +44,12 @@ encoder = model.encoder
 decoders = [model.decoder1, model.decoder2, model.decoder3, model.decoder4, model.decoder5]
 print("Model loaded")
 
-batch_size = 8
+batch_size = 10
 
 transform = transforms.Compose([])
-dataset_wikiart = ImageDataset('../data/wikiart/image_face/', style='wikiart', transform=transform)
+dataset_wikiart = ImageDataset('/media/oli/LinuxData/datasets/wikiart/image_face/', style='wikiart', transform=transform)
 wikiart_loader = DataLoader(dataset_wikiart, batch_size=batch_size, shuffle=False)
-dataset_celeba = ImageDataset('../data/wikiart/img_align_celeba/', style='celeba', transform=transform)
+dataset_celeba = ImageDataset('/media/oli/LinuxData/datasets/wikiart/img_align_celeba/', style='celeba', transform=transform)
 celeba_loader = DataLoader(dataset_celeba, batch_size=batch_size, shuffle=False)
 print("Datasets loaded")
 
@@ -67,57 +68,49 @@ def show(embedding, dec):
 
 
 with torch.no_grad():
+    xs = []
+    f1 = []
+    f2 = []
+    f3 = []
+    f4 = []
+    f5 = []
     for i, d in enumerate(celeba_loader):
-        x = d[0].float() / 255.0
+
+        # Early stopping
+        if 'f5' in locals():
+            if len(f5) * batch_size >= 1000:
+                break
+
+        x = d[0].to(device).float() / 255.0
+
 
         features5 = encoder(x, f'relu5_1')
-        rec5 = show(features5, 4)
+        #rec5 = show(features5, 4)
         features4 = encoder(x, f'relu4_1')
-        rec4 = show(features4, 3)
+        #rec4 = show(features4, 3)
         features3 = encoder(x, f'relu3_1')
-        rec3 = show(features3, 2)
+        #rec3 = show(features3, 2)
         features2 = encoder(x, f'relu2_1')
-        rec2 = show(features2, 1)
+        #rec2 = show(features2, 1)
         features1 = encoder(x, f'relu1_1')
-        rec1 = show(features1, 0)
+        #rec1 = show(features1, 0)
 
-        if not 'xs' in locals():
-            xs = x
-        else:
-            xs = torch.cat((xs, x), dim=0)
 
-        if not 'f1' in locals():
-            f1 = features1
-        else:
-            f1 = torch.cat((f1, features1), dim=0)
-            
-        if not 'f2' in locals():
-            f2 = features2
-        else:
-            f2 = torch.cat((f2, features2), dim=0)
+        dtype = torch.float
+        xs.append(x.cpu().to(dtype))
+        #f1.append(features1.cpu().to(dtype))
+        #f2.append(features2.cpu().to(dtype))
+        #f3.append(features3.cpu().to(dtype))
+        #f4.append(features4.cpu().to(dtype))
+        f5.append(features5.cpu().to(dtype))
 
-        if not 'f3' in locals():
-            f3 = features3
-        else:
-            f3 = torch.cat((f3, features3), dim=0)
-
-        if not 'f4' in locals():
-            f4 = features4
-        else:
-            f4 = torch.cat((f4, features4), dim=0)
-
-        if not 'f5' in locals():
-            f5 = features5
-        else:
-            f5 = torch.cat((f5, features5), dim=0)
-
-        print("{}/{}".format((i+1), len(celeba_loader))
-torch.save(xs, '../data/wikiart/wikiart_input.pt')
-torch.save(f1, '../data/wikiart/wikiart_embeddings_1.pt')
-torch.save(f2, '../data/wikiart/wikiart_embeddings_2.pt')
-torch.save(f3, '../data/wikiart/wikiart_embeddings_3.pt')
-torch.save(f4, '../data/wikiart/wikiart_embeddings_4.pt')
-torch.save(f5, '../data/wikiart/wikiart_embeddings_5.pt')
+        print("{}/{}".format((i+1), len(wikiart_loader)))
+torch.save(torch.cat(xs, dim=0), '../data/wikiart/celeba/celeba_input.pt')
+#torch.save(torch.stack(f1, dim=0), '../data/wikiart/wikiart_embeddings_1.pt')
+#torch.save(torch.stack(f2, dim=0), '../data/wikiart/wikiart_embeddings_2.pt')
+#torch.save(torch.stack(f3, dim=0), '../data/wikiart/wikiart_embeddings_3.pt')
+#torch.save(torch.stack(f4, dim=0), '../data/wikiart/wikiart_embeddings_4.pt')
+torch.save(torch.cat(f5, dim=0), '../data/wikiart/celeba/celeba_embeddings_5.pt')
 
 # TODO test load the embeddings and decode them to see if it worked
 
